@@ -1,14 +1,17 @@
 name: Build unsigned IPA
 
-# Compila Onyx en un runner macOS de GitHub (gratis en repos públicos)
-# y publica un .ipa SIN FIRMAR listo para sideload con AltStore / SideStore.
-#
-# Ejecución: pestaña Actions -> "Build unsigned IPA" -> Run workflow.
+# El proyecto vive en la subcarpeta Onyx/, pero GitHub SOLO detecta workflows
+# en .github/workflows/ situado en la RAIZ del repositorio. Por eso este
+# archivo va en la raiz y entra en Onyx/ para trabajar.
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
+defaults:
+  run:
+    working-directory: Onyx
 
 jobs:
   build:
@@ -46,9 +49,10 @@ jobs:
           zip -qry Onyx-unsigned.ipa Payload
           ls -lh Onyx-unsigned.ipa
 
+      # upload-artifact NO respeta defaults.run: la ruta va desde la raiz.
       - name: Publicar artefacto
         uses: actions/upload-artifact@v4
         with:
           name: Onyx-unsigned-ipa
-          path: Onyx-unsigned.ipa
+          path: Onyx/Onyx-unsigned.ipa
           retention-days: 30
