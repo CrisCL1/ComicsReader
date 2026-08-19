@@ -1,0 +1,54 @@
+name: Build unsigned IPA
+
+# Compila Onyx en un runner macOS de GitHub (gratis en repos públicos)
+# y publica un .ipa SIN FIRMAR listo para sideload con AltStore / SideStore.
+#
+# Ejecución: pestaña Actions -> "Build unsigned IPA" -> Run workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar proyecto Xcode
+        run: xcodegen generate
+
+      - name: Compilar (sin firma)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Onyx.xcodeproj \
+            -scheme Onyx \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build
+
+      - name: Empaquetar .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Onyx.app Payload/
+          zip -qry Onyx-unsigned.ipa Payload
+          ls -lh Onyx-unsigned.ipa
+
+      - name: Publicar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Onyx-unsigned-ipa
+          path: Onyx-unsigned.ipa
+          retention-days: 30
